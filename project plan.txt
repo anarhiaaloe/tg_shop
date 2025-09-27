@@ -1,0 +1,12 @@
+shop_bot/
+│
+├── bot.py              # точка входа
+├── config.py           # настройки (токен, БД)
+├── db.py               # работа с PostgreSQL
+├── keyboards.py        # кнопки/меню
+├── handlers/
+│   ├── start.py        # команда /start
+│   ├── catalog.py      # каталог товаров
+│   ├── cart.py         # корзина
+│   └── order.py        # оформление заказа
+└── requirements.txt
