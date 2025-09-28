@@ -31,3 +31,21 @@ def cart_item_keyboard(product_id: int, size: str):
         [InlineKeyboardButton(text="Удалить этот товар", callback_data=f"cart:remove:{product_id}:{size}")],
         [InlineKeyboardButton(text="Изменить размер", callback_data=f"choose_size:{product_id}")]
     ])
+
+def admin_order_keyboard(user_id: int, total: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Подтвердить заказ",
+                    callback_data=f"admin_confirm:{user_id}:{total}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="❌ Отклонить заказ",
+                    callback_data=f"admin_reject:{user_id}"
+                )
+            ],
+        ]
+    )
