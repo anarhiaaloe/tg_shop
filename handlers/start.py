@@ -1,7 +1,15 @@
-from aiogram import types
-from db import add_user
-from keyboards import main_menu
+from aiogram import Router
+from aiogram.types import Message
+from aiogram.filters import Command
 
-async def start_cmd(message: types.Message):
-    await add_user(message.from_user.id, message.from_user.username)
-    await message.answer("Добро пожаловать в магазин!", reply_markup=main_menu())
+
+router = Router()
+
+@router.message(Command("start"))
+async def start_cmd(message: Message, state=None, **kwargs):
+    await message.answer(
+        "👋 Привет! Это тестовый магазин.\n\n"
+        "Команды:\n"
+        "/catalog — Показать каталог\n"
+        "/cart — Показать корзину"
+    )
