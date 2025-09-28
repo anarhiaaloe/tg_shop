@@ -1,5 +1,5 @@
 import asyncpg
-from typing import Optional, List, Any
+from typing import Optional, List
 from config import DB_URL
 
 
@@ -23,19 +23,23 @@ class Database:
         await self.pool.close()
 
     # --- Users ---
-    async def ensure_user(self, tg_id: int, username: Optional[str] = None):
-        """
-        Вставляет пользователя в users если ещё нет (tg_id уникален).
-        """
-        await self.pool.execute(
-            """
-            INSERT INTO users (tg_id, username)
-            VALUES ($1, $2)
-            ON CONFLICT (tg_id) DO UPDATE SET username = EXCLUDED.username
-            """,
-            tg_id, username
-        )
-
+    async def ensure_user(
+        self,
+        tg_id: int,
+        username: Optional[str] = None,
+        full_name: Optional[str] = None
+    ):
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO users (tg_id, username, full_name)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (tg_id) DO UPDATE
+                SET username = EXCLUDED.username,
+                    full_name = EXCLUDED.full_name
+                """,
+                tg_id, username, full_name
+            )
     # --- Products ---
     async def get_products(self) -> List[asyncpg.Record]:
         return await self.pool.fetch("SELECT * FROM products ORDER BY id")
@@ -44,9 +48,27 @@ class Database:
         return await self.pool.fetchrow("SELECT * FROM products WHERE id=$1", product_id)
 
     # --- Cart ---
-    async def add_to_cart(self, user_id: int, product_id: int, quantity: int, size: str):
+    async def add_to_cart(
+        self,
+        user_id: int,
+        product_id: int,
+        quantity: int,
+        size: str,
+        username: Optional[str] = None,
+        full_name: Optional[str] = None
+    ):
         async with self.pool.acquire() as conn:
-            # Проверим, есть ли уже такой товар с этим размером
+            # гарантируем, что пользователь существует
+            await conn.execute(
+                """
+                INSERT INTO users (tg_id, username, full_name)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (tg_id) DO NOTHING
+                """,
+                user_id, username, full_name
+            )
+
+            # проверим, есть ли товар с таким размером
             row = await conn.fetchrow(
                 "SELECT id, quantity FROM cart WHERE user_id=$1 AND product_id=$2 AND size=$3",
                 user_id, product_id, size
@@ -61,6 +83,7 @@ class Database:
                     "INSERT INTO cart (user_id, product_id, quantity, size) VALUES ($1, $2, $3, $4)",
                     user_id, product_id, quantity, size
                 )
+
     async def get_cart(self, user_tg_id: int) -> List[asyncpg.Record]:
         return await self.pool.fetch(
             """

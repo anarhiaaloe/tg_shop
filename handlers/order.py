@@ -8,7 +8,7 @@ from keyboards import admin_order_keyboard
 router = Router()
 
 # ⚠️ замени на реальный Telegram ID пользователя @Mops_thedog
-ADMIN_ID = 724118384 
+ADMIN_ID = 724118384
 
 
 # --- FSM состояния ---
@@ -21,7 +21,14 @@ class OrderForm(StatesGroup):
 
 # --- начало оформления заказа ---
 @router.callback_query(F.data == "order:make")
-async def start_order(callback: CallbackQuery, state: FSMContext):
+async def start_order(callback: CallbackQuery, state: FSMContext, db: Database):
+    # ✅ гарантируем, что пользователь есть в БД
+    await db.ensure_user(
+        tg_id=callback.from_user.id,
+        username=callback.from_user.username,
+        full_name=callback.from_user.full_name,
+    )
+
     await state.set_state(OrderForm.fio)
     await callback.message.answer("Введите ваше ФИО:")
     await callback.answer()
@@ -45,6 +52,13 @@ async def process_address(message: Message, state: FSMContext):
 async def process_postal(message: Message, state: FSMContext, db: Database):
     await state.update_data(postal_code=message.text)
     data = await state.get_data()
+
+    # ✅ ещё раз убедимся, что юзер есть в БД
+    await db.ensure_user(
+        tg_id=message.from_user.id,
+        username=message.from_user.username,
+        full_name=message.from_user.full_name,
+    )
 
     # Получаем корзину пользователя
     cart = await db.get_cart(message.from_user.id)
@@ -83,7 +97,7 @@ async def process_postal(message: Message, state: FSMContext, db: Database):
     await message.bot.send_message(
         ADMIN_ID,
         text_for_admin,
-        reply_markup=admin_order_keyboard(message.from_user.id, total)
+        reply_markup=admin_order_keyboard(message.from_user.id, total),
     )
 
     await state.clear()
@@ -98,7 +112,7 @@ async def admin_reject(callback: CallbackQuery):
     await callback.bot.send_message(
         user_id,
         "❌ Извините, трудности с вашим заказом.\n"
-        "Пожалуйста, свяжитесь с @Mops_thedog"
+        "Пожалуйста, свяжитесь с @Mops_thedog",
     )
     await callback.answer("Заказ отклонён.")
 
@@ -118,10 +132,15 @@ async def admin_confirm(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(OrderForm.wait_delivery_price)
-async def set_delivery_price(message: Message, state: FSMContext):
+async def set_delivery_price(message: Message, state: FSMContext, db: Database):
     data = await state.get_data()
     user_id = data["user_id"]
     total = data["total"]
+
+    # ✅ убедимся, что пользователь точно есть
+    await db.ensure_user(
+        tg_id=user_id,
+    )
 
     try:
         delivery = int(message.text)
@@ -137,7 +156,7 @@ async def set_delivery_price(message: Message, state: FSMContext):
         f"🛒 Сумма товаров: {total}₽\n"
         f"🚚 Доставка: {delivery}₽\n"
         f"💳 Итог к оплате: {final_price}₽\n\n"
-        f"Реквизиты для оплаты:\n5469 1234 5678 9999 Сбербанк"
+        f"Реквизиты для оплаты:\n5469 1234 5678 9999 Сбербанк",
     )
 
     await message.answer("Счёт отправлен пользователю.")
