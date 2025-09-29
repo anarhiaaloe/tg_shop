@@ -7,8 +7,8 @@ from keyboards import admin_order_keyboard
 
 router = Router()
 
-# ⚠️ замени на реальный Telegram ID пользователя @Mops_thedog
-ADMIN_ID = 724118384
+# tg манагера
+ADMIN_ID = 491683063
 
 
 # --- FSM состояния ---
