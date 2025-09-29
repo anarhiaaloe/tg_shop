@@ -15,7 +15,8 @@ class Database:
             min_size=1,
             max_size=10,
             command_timeout=60,
-            max_inactive_connection_lifetime=300
+            max_inactive_connection_lifetime=300,
+            server_settings={"search_path": "public"}  # фикс с таблицей neon
         )
         return cls(pool)
 
