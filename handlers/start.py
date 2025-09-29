@@ -13,4 +13,4 @@ async def start_cmd(message: Message, db: Database):
         full_name=message.from_user.full_name
     )
 
-    await message.answer("👋 Добро пожаловать в магазин!")
+    await message.answer("Добро пожаловать в магазин ALL IN ONE")
